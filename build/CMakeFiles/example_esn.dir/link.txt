@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/example_esn.dir/examples/esn.c.o -o example_esn  libntteshgnn.a -lm 

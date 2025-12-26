@@ -1,0 +1,72 @@
+[
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_types.c.o -c /home/ubuntu/NTTESHGNN/src/nt_types.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_types.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_storage.c.o -c /home/ubuntu/NTTESHGNN/src/nt_storage.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_storage.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_tensor.c.o -c /home/ubuntu/NTTESHGNN/src/nt_tensor.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_tensor.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_context.c.o -c /home/ubuntu/NTTESHGNN/src/nt_context.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_context.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_ops.c.o -c /home/ubuntu/NTTESHGNN/src/nt_ops.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_ops.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_hypergraph.c.o -c /home/ubuntu/NTTESHGNN/src/nt_hypergraph.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_hypergraph.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/ntteshgnn.dir/src/nt_echostate.c.o -c /home/ubuntu/NTTESHGNN/src/nt_echostate.c",
+  "file": "/home/ubuntu/NTTESHGNN/src/nt_echostate.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/test_tensor.dir/tests/test_tensor.c.o -c /home/ubuntu/NTTESHGNN/tests/test_tensor.c",
+  "file": "/home/ubuntu/NTTESHGNN/tests/test_tensor.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/test_ops.dir/tests/test_ops.c.o -c /home/ubuntu/NTTESHGNN/tests/test_ops.c",
+  "file": "/home/ubuntu/NTTESHGNN/tests/test_ops.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/test_hypergraph.dir/tests/test_hypergraph.c.o -c /home/ubuntu/NTTESHGNN/tests/test_hypergraph.c",
+  "file": "/home/ubuntu/NTTESHGNN/tests/test_hypergraph.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/test_esn.dir/tests/test_esn.c.o -c /home/ubuntu/NTTESHGNN/tests/test_esn.c",
+  "file": "/home/ubuntu/NTTESHGNN/tests/test_esn.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/example_basic.dir/examples/basic.c.o -c /home/ubuntu/NTTESHGNN/examples/basic.c",
+  "file": "/home/ubuntu/NTTESHGNN/examples/basic.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/example_gnn.dir/examples/gnn.c.o -c /home/ubuntu/NTTESHGNN/examples/gnn.c",
+  "file": "/home/ubuntu/NTTESHGNN/examples/gnn.c"
+},
+{
+  "directory": "/home/ubuntu/NTTESHGNN/build",
+  "command": "/usr/bin/cc  -I/home/ubuntu/NTTESHGNN/include -Wall -Wextra -Wpedantic -march=native -std=gnu11 -o CMakeFiles/example_esn.dir/examples/esn.c.o -c /home/ubuntu/NTTESHGNN/examples/esn.c",
+  "file": "/home/ubuntu/NTTESHGNN/examples/esn.c"
+}
+]

@@ -1,0 +1,5 @@
+test_tensor 2 0.00111791
+test_ops 1 0.00198831
+test_hypergraph 1 0.00166309
+test_esn 1 0.0077582
+---

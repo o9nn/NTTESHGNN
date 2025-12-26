@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/test_esn.dir/tests/test_esn.c.o -o test_esn  libntteshgnn.a -lm 

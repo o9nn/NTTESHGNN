@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/test_tensor.dir/tests/test_tensor.c.o -o test_tensor  libntteshgnn.a -lm 

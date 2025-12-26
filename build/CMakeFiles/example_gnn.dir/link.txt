@@ -1,0 +1,1 @@
+/usr/bin/cc CMakeFiles/example_gnn.dir/examples/gnn.c.o -o example_gnn  libntteshgnn.a -lm 

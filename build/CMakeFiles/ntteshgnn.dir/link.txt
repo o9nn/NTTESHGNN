@@ -1,0 +1,2 @@
+/usr/bin/ar qc libntteshgnn.a CMakeFiles/ntteshgnn.dir/src/nt_types.c.o CMakeFiles/ntteshgnn.dir/src/nt_storage.c.o CMakeFiles/ntteshgnn.dir/src/nt_tensor.c.o CMakeFiles/ntteshgnn.dir/src/nt_context.c.o CMakeFiles/ntteshgnn.dir/src/nt_ops.c.o CMakeFiles/ntteshgnn.dir/src/nt_hypergraph.c.o CMakeFiles/ntteshgnn.dir/src/nt_echostate.c.o
+/usr/bin/ranlib libntteshgnn.a
