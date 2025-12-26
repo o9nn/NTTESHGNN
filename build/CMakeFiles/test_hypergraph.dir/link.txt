@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/test_hypergraph.dir/tests/test_hypergraph.c.o -o test_hypergraph  libntteshgnn.a -lm 

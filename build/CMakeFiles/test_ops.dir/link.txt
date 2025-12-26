@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/test_ops.dir/tests/test_ops.c.o -o test_ops  libntteshgnn.a -lm 

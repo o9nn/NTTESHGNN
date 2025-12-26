@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/example_basic.dir/examples/basic.c.o -o example_basic  libntteshgnn.a -lm 
