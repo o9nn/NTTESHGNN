@@ -1,0 +1,35 @@
+flowchart TB
+  SEED["Aspirational seed: connect isolated tensor,\nattention, geometry and time clusters"] --> BASE["Base index B = model revision, layer,\nbranch, kind, scope, optional geometry ID"]
+  BASE --> KIND{"Tagged tensor kind"}
+  KIND --> W["Weight fiber\nFin(3) x Fin(D) x Fin(D)\nrole, output, input"]
+  KIND --> Q["Q fiber\nFin(Hq) x Tokens_q x Fin(d)"]
+  KIND --> KV["K/V fiber\nFin(Hkv) x Tokens_kv x Fin(d)"]
+  KIND --> SC["Score fiber\nFin(Hq) x AdmissiblePairs"]
+  KIND --> REC["ESN fiber\nFin(N) with own stream scope"]
+  W --> BUNDLE["Bundle(kind) = values over fiber\n+ evidence-backed LayoutWitness"]
+  Q --> BUNDLE
+  KV --> BUNDLE
+  SC --> BUNDLE
+  REC --> BUNDLE
+  LW["Physical LayoutWitness\ndtype, source axes, ne/nb, storage offset,\ncontiguous/view/materialized, engine commit"] --> BUNDLE
+  GS["Geometry witness (optional)\nmesh, metric, chart, orientation, cell"] -.-> BUNDLE
+  BUNDLE --> TRANS{"IxArrow(source,target)\nmatch index domains and ownership"}
+  TRANS -->|view| VIEW["PERMUTE: same storage, changed ne/nb\nno value copy"]
+  TRANS -->|copy| COPY["CONT: stride-indexed logical values\nnew storage ID"]
+  TRANS -->|compute| GRAPH["MUL_MAT: projection changes extent\nTorch [3D,D] to GGML ne [D,3D]"]
+  TRANS -->|invalid| REJECT["Reject: duplicate axes, out-of-bounds,\nrole mismatch, unknown layout"]
+  GS -.-> GEO["AngleRad / SolidAngleSr feature\nNOT a byte-stride proof"]
+  VIEW --> EXP["Evidence: check shape and alias"]
+  COPY --> EXP2["Evidence: compare every logical value"]
+  GRAPH --> EXP3["Evidence: graph scalar parity"]
+  REJECT --> LOG["Record cul-de-sac and refine contract"]
+  EXP --> LOG
+  EXP2 --> LOG
+  EXP3 --> LOG
+  LOG -.->|new tested constraint| TRANS
+  classDef verified fill:#def7ea,stroke:#087f52,color:#0b3b2b
+  classDef conditional fill:#fff6d9,stroke:#bc7b00,color:#583800
+  classDef blocked fill:#ffe8e6,stroke:#b63e38,color:#5d211f
+  class LW,VIEW,COPY,GRAPH,EXP,EXP2,EXP3 verified
+  class SEED,BASE,GS,GEO,LOG conditional
+  class REJECT blocked

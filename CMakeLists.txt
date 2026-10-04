@@ -7,6 +7,8 @@ project(NTTESHGNN VERSION 0.1.0 LANGUAGES C)
 
 option(NT_BUILD_TESTS "Build test suite" ON)
 option(NT_BUILD_EXAMPLES "Build examples" ON)
+option(NT_BUILD_FIBER_GGML_DEMO "Build opt-in real GGML QKV fiber experiment" OFF)
+set(GGML_SOURCE_DIR "" CACHE PATH "Pinned GGML source tree for opt-in fiber experiment")
 option(NT_ENABLE_CUDA "Enable CUDA backend" OFF)
 option(NT_ENABLE_METAL "Enable Metal backend" OFF)
 option(NT_ENABLE_VTNPU "Enable VTNPU backend" OFF)
@@ -117,6 +119,10 @@ if(NT_BUILD_TESTS)
     add_executable(test_tensor tests/test_tensor.c)
     target_link_libraries(test_tensor PRIVATE ntteshgnn)
     add_test(NAME test_tensor COMMAND test_tensor)
+
+    add_executable(test_layout tests/test_layout.c)
+    target_link_libraries(test_layout PRIVATE ntteshgnn)
+    add_test(NAME test_layout COMMAND test_layout)
     
     add_executable(test_ops tests/test_ops.c)
     target_link_libraries(test_ops PRIVATE ntteshgnn)
@@ -144,6 +150,26 @@ if(NT_BUILD_EXAMPLES)
     
     add_executable(example_esn examples/esn.c)
     target_link_libraries(example_esn PRIVATE ntteshgnn)
+endif()
+
+if(NT_BUILD_FIBER_GGML_DEMO)
+    if(NOT EXISTS "${GGML_SOURCE_DIR}/CMakeLists.txt")
+        message(FATAL_ERROR "Set GGML_SOURCE_DIR to a pinned GGML source tree")
+    endif()
+    enable_language(CXX)
+    add_subdirectory("${GGML_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/external-ggml" EXCLUDE_FROM_ALL)
+    add_executable(fiber_qkv_graph
+        examples/federated_fiber/qkv_graph.cpp
+        examples/federated_fiber/nt_bridge.c)
+    target_compile_features(fiber_qkv_graph PRIVATE cxx_std_17)
+    target_link_libraries(fiber_qkv_graph PRIVATE ntteshgnn ggml ggml-cpu)
+    if(NT_BUILD_TESTS)
+        find_package(Python3 COMPONENTS Interpreter REQUIRED)
+        add_test(NAME test_fiber_qkv_graph
+            COMMAND "${Python3_EXECUTABLE}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/examples/federated_fiber/test_graph.py"
+                    "$<TARGET_FILE:fiber_qkv_graph>")
+    endif()
 endif()
 
 # ============================================================================
