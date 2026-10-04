@@ -9,6 +9,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <limits.h>
+#include <stdint.h>
 
 /* ============================================================================
  * INTERNAL HELPERS
@@ -36,6 +38,48 @@ static bool check_contiguous(const int32_t* ne, const int32_t* nb, uint8_t ndim,
     }
     
     return true;
+}
+
+/* A byte-strided scalar view must fit entirely in its backing storage.
+ * Block-quantized and sub-byte dtypes require block-aware addressing, not a
+ * scalar memcpy; fail closed until those codecs have their own copy path. */
+static bool valid_scalar_span(const nt_storage_t* storage, size_t offset,
+                              nt_dtype_t dtype, uint8_t ndim,
+                              const int32_t* ne, const int32_t* nb) {
+    const size_t elem = nt_dtype_size(dtype);
+    if (!storage || !storage->data || !ne || !nb || !elem ||
+        !ndim || ndim > NT_MAX_DIMS || offset > storage->size_bytes ||
+        nt_dtype_is_quantized(dtype) || nt_dtype_bits(dtype) < 8) return false;
+
+    size_t max_delta = 0;
+    size_t count = 1;
+    for (uint8_t i = 0; i < ndim; ++i) {
+        if (ne[i] <= 0 || nb[i] < 0) return false;
+        if ((size_t)ne[i] > SIZE_MAX / count) return false;
+        count *= (size_t)ne[i];
+        const size_t n = (size_t)(ne[i] - 1);
+        const size_t step = (size_t)nb[i];
+        if (step && n > (SIZE_MAX - max_delta) / step) return false;
+        max_delta += n * step;
+    }
+    return count <= (size_t)INT64_MAX / elem &&
+           elem <= storage->size_bytes - offset &&
+           max_delta <= storage->size_bytes - offset - elem;
+}
+
+/* Validate active int32 byte strides before compute_strides multiplies them.
+ * Tensor ne/nb APIs cannot express a byte stride larger than INT32_MAX. */
+static bool valid_shape(nt_dtype_t dtype, uint8_t ndim, const int32_t* shape) {
+    if (!shape || !ndim || ndim > NT_MAX_DIMS) return false;
+    const size_t elem = nt_dtype_size(dtype);
+    if (!elem || elem > INT32_MAX) return false;
+    size_t bytes = elem;
+    for (uint8_t i = 0; i < ndim; ++i) {
+        if (shape[i] <= 0 || bytes > INT32_MAX ||
+            (size_t)shape[i] > SIZE_MAX / bytes) return false;
+        bytes *= (size_t)shape[i];
+    }
+    return bytes / elem <= (size_t)INT64_MAX;
 }
 
 /* Simple xorshift64 RNG */
@@ -66,7 +110,7 @@ static float rand_normal(uint64_t* state) {
 
 nt_tensor_t* nt_tensor_new(nt_context_t* ctx, nt_dtype_t dtype,
                            uint8_t ndim, const int32_t* shape) {
-    if (ndim > NT_MAX_DIMS) {
+    if (!valid_shape(dtype, ndim, shape)) {
         return NULL;
     }
     
@@ -95,7 +139,7 @@ nt_tensor_t* nt_tensor_new(nt_context_t* ctx, nt_dtype_t dtype,
     /* Compute strides */
     compute_strides(t->nb, t->ne, ndim, dtype);
     for (uint8_t i = ndim; i < NT_MAX_DIMS; i++) {
-        t->nb[i] = t->nb[ndim > 0 ? ndim - 1 : 0] * t->ne[ndim > 0 ? ndim - 1 : 0];
+        t->nb[i] = 0;
     }
     
     /* Allocate storage */
@@ -155,7 +199,7 @@ nt_tensor_t* nt_tensor_new_4d(nt_context_t* ctx, nt_dtype_t dtype,
 nt_tensor_t* nt_tensor_from_ptr(void* data, nt_dtype_t dtype,
                                  uint8_t ndim, const int32_t* shape,
                                  const int32_t* strides) {
-    if (!data || ndim > NT_MAX_DIMS) {
+    if (!data || !valid_shape(dtype, ndim, shape)) {
         return NULL;
     }
     
@@ -188,13 +232,22 @@ nt_tensor_t* nt_tensor_from_ptr(void* data, nt_dtype_t dtype,
     }
     
     for (uint8_t i = ndim; i < NT_MAX_DIMS; i++) {
-        t->nb[i] = t->nb[ndim > 0 ? ndim - 1 : 0] * t->ne[ndim > 0 ? ndim - 1 : 0];
+        t->nb[i] = 0;
     }
     
     /* Create storage from pointer (not owned) */
     size_t size_bytes = (size_t)numel * nt_dtype_size(dtype);
     t->storage = nt_storage_from_ptr(data, size_bytes, NT_DEVICE_CPU);
     if (!t->storage) {
+        free(t);
+        return NULL;
+    }
+
+    /* The legacy pointer API promises only a packed-size allocation. For
+     * padded/offset external views use nt_tensor_from_storage with an
+     * explicit backing size instead of guessing that inaccessible bytes exist. */
+    if (!valid_scalar_span(t->storage, 0, dtype, ndim, t->ne, t->nb)) {
+        nt_storage_release(t->storage);
         free(t);
         return NULL;
     }
@@ -217,7 +270,7 @@ nt_tensor_t* nt_tensor_from_ptr(void* data, nt_dtype_t dtype,
 nt_tensor_t* nt_tensor_from_storage(nt_storage_t* storage, size_t offset,
                                      nt_dtype_t dtype, uint8_t ndim,
                                      const int32_t* shape, const int32_t* strides) {
-    if (!storage || ndim > NT_MAX_DIMS) {
+    if (!storage || !valid_shape(dtype, ndim, shape)) {
         return NULL;
     }
     
@@ -246,9 +299,14 @@ nt_tensor_t* nt_tensor_from_storage(nt_storage_t* storage, size_t offset,
     }
     
     for (uint8_t i = ndim; i < NT_MAX_DIMS; i++) {
-        t->nb[i] = t->nb[ndim > 0 ? ndim - 1 : 0] * t->ne[ndim > 0 ? ndim - 1 : 0];
+        t->nb[i] = 0;
     }
-    
+
+    if (!valid_scalar_span(storage, offset, dtype, ndim, t->ne, t->nb)) {
+        free(t);
+        return NULL;
+    }
+
     t->storage = nt_storage_retain(storage);
     t->storage_offset = offset;
     t->data = (uint8_t*)storage->data + offset;
@@ -267,17 +325,34 @@ nt_tensor_t* nt_tensor_from_storage(nt_storage_t* storage, size_t offset,
 }
 
 nt_tensor_t* nt_tensor_clone(const nt_tensor_t* src) {
-    if (!src) return NULL;
+    if (!src || !src->storage || !nt_storage_is_cpu(src->storage) ||
+        !valid_scalar_span(src->storage, src->storage_offset, src->dtype,
+                           src->ndim, src->ne, src->nb) ||
+        src->data != (const uint8_t*)src->storage->data + src->storage_offset)
+        return NULL;
     
     nt_tensor_t* dst = nt_tensor_new(NULL, src->dtype, src->ndim, src->ne);
     if (!dst) return NULL;
     
-    /* Copy data */
-    if (nt_tensor_is_contiguous(src)) {
+    /* Dimension zero varies fastest (GGML ne[0]). A view's raw byte span
+     * is not its logical sequence: each destination element must be indexed
+     * through the source byte strides. No source alias survives the clone. */
+    if (nt_tensor_is_contiguous(src) &&
+        check_contiguous(src->ne, src->nb, src->ndim, src->dtype)) {
         memcpy(dst->data, src->data, nt_tensor_nbytes(src));
     } else {
-        /* TODO: Handle non-contiguous copy */
-        memcpy(dst->data, src->data, nt_tensor_nbytes(dst));
+        const size_t elem = nt_dtype_size(src->dtype);
+        const size_t count = (size_t)nt_tensor_numel(src);
+        for (size_t linear = 0; linear < count; ++linear) {
+            size_t position = linear;
+            size_t src_offset = 0;
+            for (uint8_t axis = 0; axis < src->ndim; ++axis) {
+                src_offset += (position % (size_t)src->ne[axis]) * (size_t)src->nb[axis];
+                position /= (size_t)src->ne[axis];
+            }
+            memcpy((uint8_t*)dst->data + linear * elem,
+                   (const uint8_t*)src->data + src_offset, elem);
+        }
     }
     
     /* Copy metadata if present */
@@ -358,7 +433,7 @@ nt_tensor_t* nt_tensor_view(nt_tensor_t* src) {
 }
 
 nt_tensor_t* nt_tensor_reshape(nt_tensor_t* src, uint8_t ndim, const int32_t* shape) {
-    if (!src || !nt_tensor_is_contiguous(src)) {
+    if (!src || !nt_tensor_is_contiguous(src) || !valid_shape(src->dtype, ndim, shape)) {
         return NULL;
     }
     
@@ -386,24 +461,49 @@ nt_tensor_t* nt_tensor_transpose(nt_tensor_t* src, int dim0, int dim1) {
     if (dim0 < 0 || dim0 >= src->ndim || dim1 < 0 || dim1 >= src->ndim) {
         return NULL;
     }
-    
-    nt_tensor_t* t = nt_tensor_view(src);
+
+    int dims[NT_MAX_DIMS];
+    for (uint8_t i = 0; i < src->ndim; ++i) dims[i] = i;
+    dims[dim0] = dim1;
+    dims[dim1] = dim0;
+    nt_tensor_t* t = nt_tensor_permute(src, dims);
     if (!t) return NULL;
-    
-    /* Swap dimensions */
-    int32_t tmp_ne = t->ne[dim0];
-    t->ne[dim0] = t->ne[dim1];
-    t->ne[dim1] = tmp_ne;
-    
-    int32_t tmp_nb = t->nb[dim0];
-    t->nb[dim0] = t->nb[dim1];
-    t->nb[dim1] = tmp_nb;
-    
-    t->flags &= ~NT_FLAG_CONTIGUOUS;
-    t->flags |= NT_FLAG_TRANSPOSED;
-    t->layout = NT_LAYOUT_STRIDED;
-    
+    if (dim0 != dim1) t->flags |= NT_FLAG_TRANSPOSED;
     return t;
+}
+
+nt_tensor_t* nt_tensor_permute(nt_tensor_t* src, const int* dims) {
+    if (!src || !dims || !src->ndim || src->ndim > NT_MAX_DIMS) return NULL;
+
+    /* dims[out_axis] = in_axis, matching Torch's axis-order convention.
+     * This is a metadata-only view: the values move only in contiguous(). */
+    bool used[NT_MAX_DIMS] = {false};
+    int32_t shape[NT_MAX_DIMS];
+    int32_t strides[NT_MAX_DIMS];
+    for (uint8_t i = 0; i < src->ndim; ++i) {
+        const int axis = dims[i];
+        if (axis < 0 || axis >= src->ndim || used[axis]) return NULL;
+        used[axis] = true;
+        shape[i] = src->ne[axis];
+        strides[i] = src->nb[axis];
+    }
+    return nt_tensor_from_storage(src->storage, src->storage_offset,
+                                  src->dtype, src->ndim, shape, strides);
+}
+
+nt_tensor_t* nt_tensor_slice(nt_tensor_t* src, int dim, int start, int end) {
+    if (!src || !src->ndim || src->ndim > NT_MAX_DIMS) return NULL;
+    if (dim < 0) dim += src->ndim;
+    if (dim < 0 || dim >= src->ndim || start < 0 || end <= start ||
+        end > src->ne[dim] || src->nb[dim] < 0) return NULL;
+
+    const size_t delta = (size_t)start * (size_t)src->nb[dim];
+    if (delta > SIZE_MAX - src->storage_offset) return NULL;
+    int32_t shape[NT_MAX_DIMS];
+    for (uint8_t i = 0; i < src->ndim; ++i) shape[i] = src->ne[i];
+    shape[dim] = end - start;
+    return nt_tensor_from_storage(src->storage, src->storage_offset + delta,
+                                  src->dtype, src->ndim, shape, src->nb);
 }
 
 nt_tensor_t* nt_tensor_squeeze(nt_tensor_t* src, int dim) {

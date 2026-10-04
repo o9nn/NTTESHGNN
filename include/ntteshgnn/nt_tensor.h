@@ -191,12 +191,15 @@ nt_tensor_t* nt_tensor_from_storage(nt_storage_t* storage, size_t offset,
                                      const int32_t* shape, const int32_t* strides);
 
 /**
- * @brief Create a copy of a tensor
+ * @brief Create an independent contiguous copy in logical ne[0]-fastest order.
+ * Supports byte-addressable scalar CPU dtypes; rejects unsupported block
+ * quantization, invalid storage spans and non-CPU data by returning NULL.
  */
 nt_tensor_t* nt_tensor_clone(const nt_tensor_t* src);
 
 /**
- * @brief Create a contiguous copy of a tensor
+ * @brief Return a retained alias if contiguous, else a logical-order copy.
+ * Call nt_tensor_clone() to force distinct storage in either case.
  */
 nt_tensor_t* nt_tensor_contiguous(const nt_tensor_t* src);
 
@@ -323,12 +326,16 @@ nt_tensor_t* nt_tensor_reshape(nt_tensor_t* src, uint8_t ndim, const int32_t* sh
 nt_tensor_t* nt_tensor_transpose(nt_tensor_t* src, int dim0, int dim1);
 
 /**
- * @brief Create a permuted view
+ * @brief Create a storage-sharing permuted view.
+ * dims[output_axis] = input_axis; dims must contain every input axis exactly
+ * once. This is Torch-style axis order, not ggml_permute's parameter mapping.
+ * Call nt_tensor_contiguous() to materialize logical values.
  */
 nt_tensor_t* nt_tensor_permute(nt_tensor_t* src, const int* dims);
 
 /**
- * @brief Create a sliced view
+ * @brief Create a storage-sharing half-open [start,end) slice view.
+ * Empty slices are not representable (ne[i] must be positive).
  */
 nt_tensor_t* nt_tensor_slice(nt_tensor_t* src, int dim, int start, int end);
 

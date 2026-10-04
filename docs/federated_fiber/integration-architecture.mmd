@@ -1,0 +1,36 @@
+flowchart TB
+  subgraph T["Torch7 source cluster"]
+    CK["Trusted checkpoint or numerical fixture"] --> LW["nn.Linear QKV W: [3D,D]\nX: [T,D]; bias: [3D]"]
+    LW --> TE["Native Torch7 export\nF32-LE arrays + stride witness"]
+  end
+  subgraph N["NTTESHGNN layout cluster"]
+    TE --> GATE{"Validate widths, role order,\nbyte counts and endian"}
+    GATE -->|accepted| NT["ne=[D,3D]; reshape [D,D,3]\npermute role-first view"]
+    NT --> MAT["stride-aware CONT\nnew storage, value equality"]
+    GATE -->|rejected| STOP["Fail closed + record mismatch"]
+  end
+  subgraph G["cogpy/coggml execution cluster"]
+    MAT --> LEAF["Explicit copy into GGML leaves\nW [D,3D]; X [D,T]"]
+    LEAF --> PROJ["MUL_MAT + repeat bias\nY [3D,T]"]
+    PROJ --> SPLIT["RESHAPE [d,H,3,T]\nPERMUTE [3,H,d,T]"]
+    SPLIT --> CONT["GGML_CONT + CPU graph compute"]
+    CONT --> PARITY["Compare every scalar with\nTorch7 output / numerical reference"]
+  end
+  subgraph C["CANS / P-Lingua / temporal clusters"]
+    PL["P-Lingua logical QKV"] -.-> PG["Grammar + liveness gate\n@module is not current def syntax"]
+    PG -.->|future semantic witness| GATE
+    CM["CANS: explicit mesh, chart,\nmetric, oriented incidence"] -.-> CG["Optional geometric feature\nseparate Angle / SolidAngle type"]
+    CG -.->|future validated feature| LEAF
+    CONT -.-> OBS["Read-only feature observer"]
+    OBS -.-> ESN["ESN / TCNN own stream state"]
+    CACHE["Decoder KV cache"] -.-> NO["No shared state or direct cache claim"]
+  end
+  STOP --> LOG["Experiment ledger: failed hypothesis\nnew constraint / next test"]
+  PARITY --> LOG
+  LOG -.->|refine seed and guards| GATE
+  classDef verified fill:#def7ea,stroke:#087f52,color:#0b3b2b
+  classDef conditional fill:#fff6d9,stroke:#bc7b00,color:#583800
+  classDef blocked fill:#ffe8e6,stroke:#b63e38,color:#5d211f
+  class TE,NT,MAT,LEAF,PROJ,SPLIT,CONT,PARITY verified
+  class PL,PG,CM,CG,OBS,ESN,LOG conditional
+  class STOP,CACHE,NO blocked
